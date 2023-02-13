@@ -1,13 +1,9 @@
 #include "stat_reader.h"
 #include "input_reader.h"
-#include <algorithm>
-#include <iomanip>
+
 
 namespace input {
 namespace detail {
-void PrintStr(std::string_view str) {
-	std::cout << str << std::endl;
-}
 
 std::string_view RemovePrefixSpaces (std::string_view word) {
 	if (word.empty()) return "";
@@ -180,7 +176,7 @@ void PushQueries (const std::vector<detail::QueryExtra>& query_queie_extra,
 	}
 }
 
-void Load (std::istream &input, data_base::TransportCatalogue& tc) {
+void LoadBase (std::istream &input, data_base::TransportCatalogue& tc) {
 	std::string line;
 	size_t num_queries;
 	input >> num_queries;
@@ -204,6 +200,7 @@ void Load (std::istream &input, data_base::TransportCatalogue& tc) {
 
 	PushQueries(query_queue, tc_ptr);
 	PushQueries(query_queue_extra, tc_ptr);
-	stat_read::LoadStat(input, tc_ptr);
+	tc_ptr->SetBusesInfo();
+	stat_read::ReadBase(input, tc_ptr, std::cout);
 }
 }

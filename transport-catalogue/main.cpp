@@ -4,5 +4,5 @@
 int main()
 {
 	data_base::TransportCatalogue tc;
-	input::Load(std::cin, tc);
+	input::LoadBase(std::cin, tc);
 }

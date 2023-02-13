@@ -1,5 +1,6 @@
 #pragma once
 #include "geo.h"
+#include <algorithm>
 #include <deque>
 #include <map>
 #include <memory>
@@ -29,7 +30,7 @@ struct Bus {
 };
 
 struct BusInfo {
-	Bus* bus;
+	const Bus* bus;
 	int unique_stops = 0;
 	int count_stops = 0;
 	double geo_length = 0;
@@ -66,15 +67,12 @@ private:
 } // end data_base::details namespace
 
 class TransportCatalogue {
-
-
 	struct StopCount {
 		size_t stop_count = 0;
 		size_t unique_stops = 0;
 	};
 public:
 	TransportCatalogue();
-	void PrintAllStops();
 	void AddStop(const detail::Stop& stop);
 	void AddBus(const detail::Bus& bus);
 	detail::Stop* FindStop(std::string_view stop_name) const;
@@ -82,10 +80,7 @@ public:
 	detail::BusInfo GetBusInfo(std::string_view bus_name) const;
 	detail::StopInfo GetStopInfo(std::string_view stop_name) const;
 	void SetDistances (detail::Distance& distance);
-	detail::Distance GetDistance (const detail::Stop* stop_from,
-								  const detail::Stop* stop_to) const;
-	size_t GetDistanceFromTo(const detail::Stop* from,
-							 const detail::Stop* to) const;
+	void SetBusesInfo();
 
 private:
 	using All_Stops = std::deque<detail::Stop>;
@@ -97,11 +92,16 @@ private:
 	std::unordered_map<std::string_view, detail::Stop*> stopname_to_stop_ {};
 	std::unordered_map<std::string_view, detail::Bus*> busname_to_bus_ {};
 	std::unordered_map<detail::Stop*, Buses> stop_to_buses_ {};
-	std::unordered_map<Pair_Stops, int, detail::StopHasher> distances_ {};
+	std::unordered_map<Pair_Stops, double, detail::StopHasher> distances_ {};
+	std::unordered_map<std::string_view, detail::BusInfo> buses_info_;
 
+	detail::Distance GetDistance (const detail::Stop* stop_from,
+								  const detail::Stop* stop_to) const;
+	size_t GetDistanceFromTo(const detail::Stop* from,
+							 const detail::Stop* to) const;
 	StopCount GetStopCount (const detail::Bus* bus) const;
 	double GetRealRouteLength (const detail::Bus* bus) const;
 	double GetGeoRouteLength (const detail::Bus* bus) const;
-
+	void MakeBusInfo(const detail::Bus* bus);
 };
 }

@@ -4,6 +4,6 @@
 
 namespace stat_read {
 
-void LoadStat(std::istream& input, data_base::TransportCatalogue* tc_ptr);
+std::ostream& ReadBase(std::istream& input, data_base::TransportCatalogue* tc_ptr, std::ostream& out);
 
 }

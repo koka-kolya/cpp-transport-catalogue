@@ -1,9 +1,4 @@
 #include "transport_catalogue.h"
-#include <algorithm>
-#include <iomanip>
-#include <iostream>
-#include <set>
-#include <unordered_set>
 
 namespace data_base {
 
@@ -41,25 +36,12 @@ detail::Bus* TransportCatalogue::FindBus(std::string_view bus_name) const {
 }
 
 detail::BusInfo TransportCatalogue::GetBusInfo(std::string_view bus_name) const {
-	detail::BusInfo output {};
-	if (busname_to_bus_.count(bus_name) == 0) {
+	if (buses_info_.count(bus_name) == 0) {
+		detail::BusInfo output {};
 		output.bus = nullptr;
 		return output;
 	}
-	detail::Bus* bus = FindBus(bus_name);
-	output.bus = bus;
-	StopCount stop_count = GetStopCount(bus);
-	output.count_stops = stop_count.stop_count;
-	output.unique_stops = stop_count.unique_stops;
-	if (output.count_stops > 1) {
-		output.geo_length = GetGeoRouteLength(bus);
-		output.real_length = GetRealRouteLength(bus);
-		output.curvature = output.real_length / output.geo_length;
-	} else {
-		output.geo_length = 0;
-		output.real_length = GetRealRouteLength(bus);
-	}
-	return output;
+	return buses_info_.at(bus_name);
 }
 
 detail::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) const  {
@@ -83,30 +65,6 @@ detail::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) con
 	return output;
 }
 
-TransportCatalogue::StopCount
-TransportCatalogue::GetStopCount (const detail::Bus* bus) const{
-	StopCount output {};
-	bool is_ring_route = bus->route_type == detail::RouteType::Ring;
-	output.stop_count = is_ring_route ?
-				bus->route_.size() : bus->route_.size() * 2 - 1;
-	std::unordered_set<const detail::Stop*> unique_stops;
-	unique_stops.insert(bus->route_.begin(), bus->route_.end());
-	output.unique_stops = unique_stops.size();
-	return output;
-}
-
-double TransportCatalogue::GetGeoRouteLength (const detail::Bus* bus) const {
-	double length = 0;
-	for (size_t i = 1; i < bus->route_.size(); ++i) {
-		length += (ComputeDistance(bus->route_[i - 1]->coordinates,
-				   bus->route_[i]->coordinates));
-	}
-	if (bus->route_type == detail::RouteType::Line) {
-		length *= 2;
-	}
-	return length;
-}
-
 void data_base::TransportCatalogue::SetDistances (detail::Distance& distance) {
 	if (distances_.count({distance.from_to.second, distance.from_to.first}) != 0) {
 		if (distances_.at({distance.from_to.second, distance.from_to.first}) == distance.value) {
@@ -114,6 +72,22 @@ void data_base::TransportCatalogue::SetDistances (detail::Distance& distance) {
 		}
 	}
 	distances_.insert({distance.from_to, distance.value});
+}
+
+void TransportCatalogue::SetBusesInfo() {
+	for(const auto& [_, bus] : busname_to_bus_) {
+		MakeBusInfo(bus);
+	}
+}
+
+detail::Distance
+TransportCatalogue::GetDistance(const detail::Stop* stop_from,
+								const detail::Stop* stop_to) const {
+	detail::Distance dist;
+	dist.from_to = {stop_from, stop_to};
+	size_t dist_val = GetDistanceFromTo(stop_from, stop_to);
+	dist.value = dist_val > 0 ? dist_val : GetDistanceFromTo(stop_to, stop_from);
+	return dist;
 }
 
 size_t TransportCatalogue::GetDistanceFromTo(const detail::Stop* from,
@@ -125,14 +99,16 @@ size_t TransportCatalogue::GetDistanceFromTo(const detail::Stop* from,
 	}
 }
 
-detail::Distance
-TransportCatalogue::GetDistance(const detail::Stop *stop_from,
-								const detail::Stop* stop_to) const {
-	detail::Distance dist;
-	dist.from_to = {stop_from, stop_to};
-	size_t dist_val = GetDistanceFromTo(stop_from, stop_to);
-	dist.value = dist_val > 0 ? dist_val : GetDistanceFromTo(stop_to, stop_from);
-	return dist;
+TransportCatalogue::StopCount
+TransportCatalogue::GetStopCount (const detail::Bus* bus) const{
+	StopCount output {};
+	bool is_ring_route = bus->route_type == detail::RouteType::Ring;
+	output.stop_count = is_ring_route ?
+				bus->route_.size() : bus->route_.size() * 2 - 1;
+	std::unordered_set<const detail::Stop*> unique_stops;
+	unique_stops.insert(bus->route_.begin(), bus->route_.end());
+	output.unique_stops = unique_stops.size();
+	return output;
 }
 
 double TransportCatalogue::GetRealRouteLength (const detail::Bus* bus) const {
@@ -154,5 +130,34 @@ double TransportCatalogue::GetRealRouteLength (const detail::Bus* bus) const {
 		}
 	}
 	return length;
+}
+
+double TransportCatalogue::GetGeoRouteLength (const detail::Bus* bus) const {
+	double length = 0;
+	for (size_t i = 1; i < bus->route_.size(); ++i) {
+		length += (ComputeDistance(bus->route_[i - 1]->coordinates,
+				   bus->route_[i]->coordinates));
+	}
+	if (bus->route_type == detail::RouteType::Line) {
+		length *= 2;
+	}
+	return length;
+}
+
+void TransportCatalogue::MakeBusInfo(const detail::Bus* bus) {
+	detail::BusInfo bus_info {};
+	bus_info.bus = bus;
+	StopCount stop_count = GetStopCount(bus);
+	bus_info.count_stops = stop_count.stop_count;
+	bus_info.unique_stops = stop_count.unique_stops;
+	if (bus_info.count_stops > 1) {
+		bus_info.geo_length = GetGeoRouteLength(bus);
+		bus_info.real_length = GetRealRouteLength(bus);
+		bus_info.curvature = bus_info.real_length / bus_info.geo_length;
+	} else {
+		bus_info.geo_length = 0;
+		bus_info.real_length = GetRealRouteLength(bus);
+	}
+	buses_info_.insert({bus->bus_name, std::move(bus_info)});
 }
 }

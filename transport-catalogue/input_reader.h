@@ -1,6 +1,7 @@
 #pragma once
-#include <iostream>
 #include "transport_catalogue.h"
+#include <algorithm>
+#include <iostream>
 
 namespace input {
 namespace detail {
@@ -52,6 +53,6 @@ void PushQueries (const std::vector<detail::Query>& query_queie,
 				  data_base::TransportCatalogue* tc_ptr);
 void PushQueries (const std::vector<std::string>& query_queie_extra,
 				  data_base::TransportCatalogue* tc_ptr);
-void Load(std::istream &input, data_base::TransportCatalogue& catalogue);
+void LoadBase(std::istream &input, data_base::TransportCatalogue& catalogue);
 }
 
