@@ -6,47 +6,47 @@ TransportCatalogue::TransportCatalogue()
 {
 }
 
-void TransportCatalogue::AddStop(const detail::Stop& stop) {
+void TransportCatalogue::AddStop(const domain::Stop& stop) {
 	if (stopname_to_stop_.count(stop.stop_name) != 0) return;
 	stops_.emplace_back(std::move(stop));
 	stopname_to_stop_.insert({stops_.back().stop_name, &stops_.back()});
 }
 
-void TransportCatalogue::AddBus(const detail::Bus& bus) {
+void TransportCatalogue::AddBus(const domain::Bus& bus) {
 	if (busname_to_bus_.count(bus.bus_name) != 0) return;
 	buses_.emplace_back(std::move(bus));
 	busname_to_bus_.emplace(buses_.back().bus_name, &buses_.back());
-	for (detail::Stop* stop : bus.route_) {
+	for (domain::Stop* stop : bus.route_) {
 		stop_to_buses_[stop].insert(&buses_.back());
 	}
 }
 
-detail::Stop* TransportCatalogue::FindStop(std::string_view stop_name) const {
+domain::Stop* TransportCatalogue::FindStop(std::string_view stop_name) const {
 	if (stopname_to_stop_.count(stop_name) == 0) {
 		return nullptr;
 	}
 	return stopname_to_stop_.at(stop_name);
 }
 
-detail::Bus* TransportCatalogue::FindBus(std::string_view bus_name) const {
+domain::Bus* TransportCatalogue::FindBus(std::string_view bus_name) const {
 	if (busname_to_bus_.count(bus_name) == 0) {
 		return nullptr;
 	}
 	return busname_to_bus_.at(bus_name);
 }
 
-detail::BusInfo TransportCatalogue::GetBusInfo(std::string_view bus_name) const {
+domain::BusInfo TransportCatalogue::GetBusInfo(std::string_view bus_name) const {
 	if (buses_info_.count(bus_name) == 0) {
-		detail::BusInfo output {};
+		domain::BusInfo output {};
 		output.bus = nullptr;
 		return output;
 	}
 	return buses_info_.at(bus_name);
 }
 
-detail::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) const  {
-	detail::StopInfo output;
-	detail::Stop* stop = FindStop(stop_name);
+domain::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) const  {
+	domain::StopInfo output;
+	domain::Stop* stop = FindStop(stop_name);
 	if (stop == nullptr) {
 		output.stop = nullptr;
 		return output;
@@ -56,7 +56,7 @@ detail::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) con
 		output.no_bus = true;
 		return output;
 	}
-	for (const detail::Bus* bus : stop_to_buses_.at(stop)) {
+	for (const domain::Bus* bus : stop_to_buses_.at(stop)) {
 		output.buses_to_stop.push_back(bus->bus_name);
 	}
 	std::sort(output.buses_to_stop.begin(), output.buses_to_stop.end());
@@ -65,7 +65,7 @@ detail::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) con
 	return output;
 }
 
-void data_base::TransportCatalogue::SetDistances (detail::Distance& distance) {
+void data_base::TransportCatalogue::SetDistances (domain::Distance &distance) {
 	if (distances_.count({distance.from_to.second, distance.from_to.first}) != 0) {
 		if (distances_.at({distance.from_to.second, distance.from_to.first}) == distance.value) {
 			return;
@@ -74,24 +74,47 @@ void data_base::TransportCatalogue::SetDistances (detail::Distance& distance) {
 	distances_.insert({distance.from_to, distance.value});
 }
 
+void data_base::TransportCatalogue::SetDistances (std::string_view from, std::string_view to, double dist) {
+	domain::Stop* stop_from = FindStop(from);
+	domain::Stop* stop_to = FindStop(to);
+	if (distances_.count({stop_to, stop_from}) != 0) {
+		if (distances_.at({stop_to, stop_from}) == dist) {
+			return;
+		}
+	}
+	distances_.insert({{stop_from, stop_to}, dist});
+}
+
 void TransportCatalogue::SetBusesInfo() {
 	for(const auto& [_, bus] : busname_to_bus_) {
-		MakeBusInfo(bus);
+		if (!bus->route_.empty()) {
+			MakeBusInfo(bus);
+		}
 	}
 }
 
-detail::Distance
-TransportCatalogue::GetDistance(const detail::Stop* stop_from,
-								const detail::Stop* stop_to) const {
-	detail::Distance dist;
+TransportCatalogue::AllBusesInfo TransportCatalogue::GetAllBusesInfo() const {
+	return buses_info_;
+}
+
+TransportCatalogue::AllBuses TransportCatalogue::GetAllBuses() const {
+	return buses_;
+}
+TransportCatalogue::AllStops TransportCatalogue::GetAllStops() const {
+	return stops_;
+}
+
+domain::Distance TransportCatalogue::GetDistance(const domain::Stop* stop_from,
+								const domain::Stop* stop_to) const {
+	domain::Distance dist;
 	dist.from_to = {stop_from, stop_to};
 	size_t dist_val = GetDistanceFromTo(stop_from, stop_to);
 	dist.value = dist_val > 0 ? dist_val : GetDistanceFromTo(stop_to, stop_from);
 	return dist;
 }
 
-size_t TransportCatalogue::GetDistanceFromTo(const detail::Stop* from,
-											 const detail::Stop* to) const {
+size_t TransportCatalogue::GetDistanceFromTo(const domain::Stop* from,
+											 const domain::Stop* to) const {
 	if (distances_.count({from, to}) > 0) {
 		return distances_.at({from, to});
 	} else {
@@ -100,23 +123,23 @@ size_t TransportCatalogue::GetDistanceFromTo(const detail::Stop* from,
 }
 
 TransportCatalogue::StopCount
-TransportCatalogue::GetStopCount (const detail::Bus* bus) const{
+TransportCatalogue::GetStopCount (const domain::Bus* bus) const{
 	StopCount output {};
-	bool is_ring_route = bus->route_type == detail::RouteType::Ring;
+	bool is_ring_route = bus->route_type == domain::RouteType::Ring;
 	output.stop_count = is_ring_route ?
 				bus->route_.size() : bus->route_.size() * 2 - 1;
-	std::unordered_set<const detail::Stop*> unique_stops;
+	std::unordered_set<const domain::Stop*> unique_stops;
 	unique_stops.insert(bus->route_.begin(), bus->route_.end());
 	output.unique_stops = unique_stops.size();
 	return output;
 }
 
-double TransportCatalogue::GetRealRouteLength (const detail::Bus* bus) const {
+double TransportCatalogue::GetRealRouteLength (const domain::Bus* bus) const {
 	double length = 0;
 	for (int i = 1; i < bus->route_.size(); ++i) {
 		length += GetDistance(bus->route_[i - 1], bus->route_[i]).value;
 	}
-	if (bus->route_type == detail::RouteType::Ring) {
+	if (bus->route_type == domain::RouteType::Ring) {
 		return length;
 	} else {
 		for (int i = bus->route_.size(); i > 1; --i) {
@@ -132,20 +155,20 @@ double TransportCatalogue::GetRealRouteLength (const detail::Bus* bus) const {
 	return length;
 }
 
-double TransportCatalogue::GetGeoRouteLength (const detail::Bus* bus) const {
+double TransportCatalogue::GetGeoRouteLength (const domain::Bus* bus) const {
 	double length = 0;
 	for (size_t i = 1; i < bus->route_.size(); ++i) {
 		length += (ComputeDistance(bus->route_[i - 1]->coordinates,
 				   bus->route_[i]->coordinates));
 	}
-	if (bus->route_type == detail::RouteType::Line) {
+	if (bus->route_type == domain::RouteType::Line) {
 		length *= 2;
 	}
 	return length;
 }
 
-void TransportCatalogue::MakeBusInfo(const detail::Bus* bus) {
-	detail::BusInfo bus_info {};
+void TransportCatalogue::MakeBusInfo(const domain::Bus* bus) {
+	domain::BusInfo bus_info {};
 	bus_info.bus = bus;
 	StopCount stop_count = GetStopCount(bus);
 	bus_info.count_stops = stop_count.stop_count;
