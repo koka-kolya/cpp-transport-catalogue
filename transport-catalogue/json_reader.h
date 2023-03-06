@@ -3,6 +3,7 @@
 #include "map_renderer.h"
 #include "transport_catalogue.h"
 #include <memory>
+#include <sstream>
 
 namespace json_reader {
 using namespace std::literals;

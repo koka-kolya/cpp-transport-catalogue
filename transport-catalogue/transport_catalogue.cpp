@@ -136,7 +136,7 @@ TransportCatalogue::GetStopCount (const domain::Bus* bus) const{
 
 double TransportCatalogue::GetRealRouteLength (const domain::Bus* bus) const {
 	double length = 0;
-	for (int i = 1; i < bus->route_.size(); ++i) {
+	for (long unsigned int i = 1; i < bus->route_.size(); ++i) {
 		length += GetDistance(bus->route_[i - 1], bus->route_[i]).value;
 	}
 	if (bus->route_type == domain::RouteType::Ring) {

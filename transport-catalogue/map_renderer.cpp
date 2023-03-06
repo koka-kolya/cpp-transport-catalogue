@@ -41,7 +41,7 @@ void MapRenderer::MakeRouteToGeoCoordsAndStop() {
 		std::vector<domain::Stop*> tmp_stops;
 
 		// adding stops from begin to last for both types routes
-		for (int i = 0; i < it->route_.size(); ++i) {
+		for (long unsigned int i = 0; i < it->route_.size(); ++i) {
 			tmp_stops.push_back(it->route_[i]);
 			tmp_coords.push_back({it->route_[i]->coordinates.lat,
 								  it->route_[i]->coordinates.lng});
@@ -101,7 +101,7 @@ svg::Text MapRenderer::GetExtraForName(const svg::Text& name) const {
 
 MapRenderer::DrawablePtrs MapRenderer::MakeRoutesSVG() const {
 	std::vector<std::unique_ptr<svg::Drawable>> routes;
-	for (int index_route = 0; index_route < routes_svg_.size(); ++index_route) {
+	for (long unsigned int index_route = 0; index_route < routes_svg_.size(); ++index_route) {
 		if (routes_svg_[index_route].route.empty()) continue;
 		Route route (routes_svg_[index_route].route,
 					 rs_.RenderColor(index_route),
@@ -125,7 +125,7 @@ svg::Document MapRenderer::RenderMap() const {
 	svg::Document map;
 	DrawPicture(std::move(MakeRoutesSVG()), map); // draw routes
 
-	for (int index_route = 0; index_route < routes_svg_.size(); ++index_route) {
+	for (long unsigned int index_route = 0; index_route < routes_svg_.size(); ++index_route) {
 		if (routes_svg_[index_route].route.empty()) continue;
 
 		// adding bus name to begin route for all routes
@@ -184,7 +184,7 @@ RouteSVG MapRenderer::MakeRoutesBaseSVG(int route_index, const SphereProjector& 
 	RouteSVG output;
 	StopSVG stop_svg;
 	output.bus = routes_to_gcoords_[route_index].bus;
-	for (int j = 0; j < routes_to_gcoords_[route_index].geo_coords.size(); ++j) {
+	for (long unsigned int j = 0; j < routes_to_gcoords_[route_index].geo_coords.size(); ++j) {
 		if (routes_to_gcoords_[route_index].stops.empty()) {
 			continue;
 		}

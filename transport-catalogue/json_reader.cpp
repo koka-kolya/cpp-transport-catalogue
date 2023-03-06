@@ -1,13 +1,9 @@
 #include "json_reader.h"
+#include "json_builder.h"
 #include "map_renderer.h"
 #include "svg.h"
 
 #include <cstdlib>
-
-/*
- * Здесь можно разместить код наполнения транспортного справочника данными из JSON,
- * а также код обработки запросов к базе и формирование массива ответов в формате JSON
- */
 
 namespace json_reader {
 
@@ -21,7 +17,7 @@ void JsonReader::LoadJsonAndSetDB(std::istream& input) {
 }
 
 void JsonReader::LoadJSON(std::istream& input) {
-	all_requests_ = std::move(json::Load(input).GetRoot().AsMap());
+	all_requests_ = std::move(json::Load(input).GetRoot().AsDict());
 	SplitRequestByType();
 	SplitBaseRequestsByType();
 }
@@ -35,17 +31,17 @@ void JsonReader::SetDB() {
 void JsonReader::GetCompleteOutputJSON(std::ostream& out) {
 	json::Array output;
 	for (auto it = stat_requests_->begin(); it != stat_requests_->end(); ++it) {
-		int request_id = it->AsMap().at("id"s).AsInt();
-		if (it->AsMap().at("type"s) == "Stop"s) {
-			if (db_->FindStop(it->AsMap().at("name"s).AsString()) == nullptr) {
+		int request_id = it->AsDict().at("id"s).AsInt();
+		if (it->AsDict().at("type"s) == "Stop"s) {
+			if (db_->FindStop(it->AsDict().at("name"s).AsString()) == nullptr) {
 				output.push_back(GetErrorMessage(request_id));
 				continue;
 			}
 			output.push_back(MakeStopInfoNode(it, request_id));
-		} else if (it->AsMap().at("type"s) == "Map"s) {
+		} else if (it->AsDict().at("type"s) == "Map"s) {
 			output.push_back(MakeSVGNode(request_id));
 		} else {
-			if (db_->FindBus(it->AsMap().at("name"s).AsString()) == nullptr) {
+			if (db_->FindBus(it->AsDict().at("name"s).AsString()) == nullptr) {
 				output.push_back(GetErrorMessage(request_id));
 				continue;
 			}
@@ -65,23 +61,23 @@ void JsonReader::MakeSVG(std::ostream& out) const {
 void JsonReader::SplitRequestByType() {
 	base_requests_ = &all_requests_.at("base_requests"s).AsArray();
 	stat_requests_ = &all_requests_.at("stat_requests"s).AsArray();
-	render_settings_ = &all_requests_.at("render_settings"s).AsMap();
+	render_settings_ = &all_requests_.at("render_settings"s).AsDict();
 }
 
 void JsonReader::SplitBaseRequestsByType() {
 	for (auto it = base_requests_->begin(); it != base_requests_->end(); ++it) {
 		if (it->IsNull()) { break; }
-		if (it->AsMap().at("type"s) == "Stop"s) {
-			stops_to_db_.emplace_back(&(it->AsMap()));
+		if (it->AsDict().at("type"s) == "Stop"s) {
+			stops_to_db_.emplace_back(&(it->AsDict()));
 		} else {
-			buses_to_db_.emplace_back(&(it->AsMap()));
+			buses_to_db_.emplace_back(&(it->AsDict()));
 		}
 	}
 }
 
 void JsonReader::SetDistancesInDB() {
 	for (const auto& stop : stops_to_db_) {
-		for (const auto& [stop_to, dist] : stop->at("road_distances"s).AsMap()) {
+		for (const auto& [stop_to, dist] : stop->at("road_distances"s).AsDict()) {
 			db_->SetDistances(stop->at("name"s).AsString(), stop_to, dist.AsDouble());
 		}
 	}
@@ -114,32 +110,48 @@ void JsonReader::AddBusesInfoToDB() {
 json::Node JsonReader::MakeSVGNode(int request_id) {
 	std::ostringstream os;
 	MakeSVG(os);
-	return json::Node{json::Dict{{"map"s, std::move(os.str())},
-								 {"request_id"s, request_id}}};
+	return json::Node (json::Builder{}
+						.StartDict()
+							.Key("map"s).Value(std::move(os.str()))
+							.Key("request_id"s).Value(request_id)
+						.EndDict()
+						.Build());
 }
 
 json::Node JsonReader::MakeStopInfoNode(json::Array::const_iterator it, int request_id) {
-	domain::StopInfo stop_info = db_->GetStopInfo(it->AsMap().at("name"s).AsString());
+	domain::StopInfo stop_info = db_->GetStopInfo(it->AsDict().at("name"s).AsString());
 	std::vector<json::Node> buses;
 	for (auto it = stop_info.buses_to_stop.begin(); it != stop_info.buses_to_stop.end(); ++it) {
 		buses.emplace_back(json::Node{static_cast<std::string>(*it)});
 	}
-	return json::Node {json::Dict{{"buses"s, std::move(buses)},
-								 {"request_id"s, request_id}}};
+	return json::Node (json::Builder{}
+						.StartDict()
+							.Key("buses"s).Value(std::move(buses))
+							.Key("request_id"s).Value(request_id)
+						.EndDict()
+						.Build());
 }
 
 json::Node JsonReader::MakeBusInfoNode(json::Array::const_iterator it, int request_id) {
-	domain::BusInfo bus_info = db_->GetBusInfo(it->AsMap().at("name"s).AsString());
-	return json::Node {json::Dict{{"curvature"s, bus_info.curvature},
-								  {"request_id"s, request_id},
-								  {"route_length"s, bus_info.real_length},
-								  {"stop_count"s, bus_info.count_stops},
-								  {"unique_stop_count"s, bus_info.unique_stops}}};
+	domain::BusInfo bus_info = db_->GetBusInfo(it->AsDict().at("name"s).AsString());
+	return json::Node(json::Builder{}
+				.StartDict()
+					.Key("curvature"s).Value(bus_info.curvature)
+					.Key("request_id"s).Value(request_id)
+					.Key("route_length"s).Value(bus_info.real_length)
+					.Key("stop_count"s).Value(bus_info.count_stops)
+					.Key("unique_stop_count"s).Value(bus_info.unique_stops)
+				.EndDict()
+				.Build());
 }
 
 json::Node JsonReader::GetErrorMessage(const int request_id) {
-	return json::Node (json::Dict{{"request_id"s, request_id},
-								  {"error_message"s, "not found"s}});
+	return json::Node (json::Builder{}
+				.StartDict()
+					.Key("request_id"s).Value(request_id)
+					.Key("error_message"s).Value("not found"s)
+				.EndDict()
+				.Build());
 }
 
 svg::Color MakeRGBaString(json::Node color) {
