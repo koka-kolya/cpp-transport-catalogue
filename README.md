@@ -44,7 +44,7 @@ data_base::TransportCatalogue db; // create empty data base
 ```C++
 json_reader::JsonReader json_reader(db); 
 ```
-3. Программа готова к работе, далeе необходимо передать методу ```LoadJsonAndSetDB``` класса ```JsonReader``` запросы во входной поток ```std::istream&```:
+3. Программа готова к работе, далeе необходимо передать методу ```LoadJsonAndSetDB``` класса ```JsonReader``` запросы во входной поток ```std::istream&``` \
 Сигнатура метода:
 ```C++
 void LoadJsonAndSetDB(std::istream& input)
