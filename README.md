@@ -66,7 +66,7 @@ void GetCompleteOutputJSON(std::ostream& out);
 ```C++
 json_reader.GetCompleteOutputJSON(std::cout);
 ```
-Пример использования. Возможный результат рендеринга карты.
+Пример использования. Возможный результат рендеринга карты (кольцевой и некольцевой маршрут).
 ![Example svg](ex.png)
 
 ### Планы по доработке
