@@ -71,7 +71,7 @@ json_reader.GetCompleteOutputJSON(std::cout);
 ![Example svg](ex.png)
 
 5. Виды и структура поддерживаемых запросов на примере из реального запроса:
-```json
+```С++
 {
 
   "base_requests": [    // запрос на добавление в базу данных
