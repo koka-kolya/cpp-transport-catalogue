@@ -25,7 +25,6 @@
 
 - `domain.h` - структуры для остановок, маршрутов и информации о них
 - `geo.h | .cpp` функции для расчета географических расстояний между двумя остановками
-- `document.h` структуры Document и enum-класс DocumentStatus
 - `json.h | json.cpp` json-библиотека
 - `json_builder.h | .cpp` конструктор json
 - `json_reader.h | .cpp` парсер входящих json-запросов и конструктор json-ответов
