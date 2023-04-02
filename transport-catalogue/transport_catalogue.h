@@ -39,14 +39,22 @@ public:
 	using AllStops = std::deque<domain::Stop>;
 	using AllBuses = std::deque<domain::Bus>;
 	using AllBusesInfo = std::unordered_map<std::string_view, domain::BusInfo>;
+	using FromTo = std::pair<const domain::Stop*, const domain::Stop*>;
+	using Buses = std::unordered_set<domain::Bus*>;
+	using Distances = std::unordered_map<FromTo, double, detail::StopHasher>;
 
 	TransportCatalogue();
+
 	void AddStop(const domain::Stop& stop);
 	void AddBus(const domain::Bus& bus);
+
 	domain::Stop* FindStop(std::string_view stop_name) const;
+	domain::Stop* FindStopById(size_t id);
 	domain::Bus* FindBus(std::string_view bus_name) const;
+
 	domain::BusInfo GetBusInfo(std::string_view bus_name) const;
 	domain::StopInfo GetStopInfo(std::string_view stop_name) const;
+
 	void SetDistances (domain::Distance& distance);
 	void SetDistances (std::string_view from, std::string_view to, double dist);
 	void SetBusesInfo();
@@ -55,19 +63,22 @@ public:
 	AllBuses GetAllBuses() const;
 	AllStops GetAllStops() const;
 
+	size_t GetStopCounts() const;
+	size_t GetBusCounts() const;
+
+	const Distances* GetAllDistances();
+	double GetDistanceForPairStops(const domain::Stop *from, const domain::Stop *to) const;
+
 private:
-	using FromTo = std::pair<const domain::Stop*, const domain::Stop*>;
-	using Buses = std::unordered_set<domain::Bus*>;
 	AllStops stops_ {};
 	AllBuses buses_ {};
 	std::unordered_map<std::string_view, domain::Stop*> stopname_to_stop_ {};
 	std::unordered_map<std::string_view, domain::Bus*> busname_to_bus_ {};
 	std::unordered_map<domain::Stop*, Buses> stop_to_buses_ {};
-	std::unordered_map<FromTo, double, detail::StopHasher> distances_ {};
-	AllBusesInfo buses_info_;
+	Distances distances_ {};
+	AllBusesInfo buses_info_ {};
 
-	domain::Distance GetDistance (const domain::Stop* stop_from,
-								  const domain::Stop* stop_to) const;
+	double GetDistance (const domain::Stop* stop_from, const domain::Stop* stop_to) const;
 	size_t GetDistanceFromTo(const domain::Stop* from,
 							 const domain::Stop* to) const;
 	StopCount GetStopCount (const domain::Bus* bus) const;

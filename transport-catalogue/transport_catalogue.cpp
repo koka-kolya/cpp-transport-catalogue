@@ -8,13 +8,13 @@ TransportCatalogue::TransportCatalogue()
 
 void TransportCatalogue::AddStop(const domain::Stop& stop) {
 	if (stopname_to_stop_.count(stop.stop_name) != 0) return;
-	stops_.emplace_back(std::move(stop));
+	stops_.emplace_back(stop);
 	stopname_to_stop_.insert({stops_.back().stop_name, &stops_.back()});
 }
 
 void TransportCatalogue::AddBus(const domain::Bus& bus) {
 	if (busname_to_bus_.count(bus.bus_name) != 0) return;
-	buses_.emplace_back(std::move(bus));
+	buses_.emplace_back(bus);
 	busname_to_bus_.emplace(buses_.back().bus_name, &buses_.back());
 	for (domain::Stop* stop : bus.route_) {
 		stop_to_buses_[stop].insert(&buses_.back());
@@ -25,7 +25,12 @@ domain::Stop* TransportCatalogue::FindStop(std::string_view stop_name) const {
 	if (stopname_to_stop_.count(stop_name) == 0) {
 		return nullptr;
 	}
-	return stopname_to_stop_.at(stop_name);
+	return stopname_to_stop_.find(stop_name)->second;
+}
+
+domain::Stop *TransportCatalogue::FindStopById(size_t id)
+{
+	return FindStop(stops_[id].stop_name);
 }
 
 domain::Bus* TransportCatalogue::FindBus(std::string_view bus_name) const {
@@ -104,22 +109,41 @@ TransportCatalogue::AllStops TransportCatalogue::GetAllStops() const {
 	return stops_;
 }
 
-domain::Distance TransportCatalogue::GetDistance(const domain::Stop* stop_from,
-								const domain::Stop* stop_to) const {
-	domain::Distance dist;
-	dist.from_to = {stop_from, stop_to};
-	size_t dist_val = GetDistanceFromTo(stop_from, stop_to);
-	dist.value = dist_val > 0 ? dist_val : GetDistanceFromTo(stop_to, stop_from);
-	return dist;
+size_t TransportCatalogue::GetStopCounts() const {
+	return stops_.size();
+}
+
+size_t TransportCatalogue::GetBusCounts() const {
+	return buses_.size();
+}
+
+double TransportCatalogue::GetDistance(const domain::Stop* stop_from,
+												 const domain::Stop* stop_to) const {
+
+	double dist_val = GetDistanceFromTo(stop_from, stop_to);
+	return dist_val > 0 ? dist_val : GetDistanceFromTo(stop_to, stop_from);;
+}
+
+const TransportCatalogue::Distances* TransportCatalogue::GetAllDistances() {
+	Distances* dist_ptr = &distances_;
+	return dist_ptr;
+}
+
+double TransportCatalogue::GetDistanceForPairStops(const domain::Stop *from,
+												   const domain::Stop *to) const {
+	auto it_dist = distances_.find({from , to});
+	if (it_dist == distances_.end()) {
+		it_dist = distances_.find({to, from});
+	}
+	return it_dist->second;
 }
 
 size_t TransportCatalogue::GetDistanceFromTo(const domain::Stop* from,
 											 const domain::Stop* to) const {
 	if (distances_.count({from, to}) > 0) {
 		return distances_.at({from, to});
-	} else {
-		return 0u;
 	}
+	return 0u;
 }
 
 TransportCatalogue::StopCount
@@ -137,23 +161,25 @@ TransportCatalogue::GetStopCount (const domain::Bus* bus) const{
 double TransportCatalogue::GetRealRouteLength (const domain::Bus* bus) const {
 	double length = 0;
 	for (long unsigned int i = 1; i < bus->route_.size(); ++i) {
-		length += GetDistance(bus->route_[i - 1], bus->route_[i]).value;
+		length += GetDistance(bus->route_[i - 1], bus->route_[i]);
 	}
 	if (bus->route_type == domain::RouteType::Ring) {
 		return length;
 	} else {
 		for (int i = bus->route_.size(); i > 1; --i) {
-			length += GetDistance(bus->route_[i - 1], bus->route_[i - 2]).value;
+			length += GetDistance(bus->route_[i - 1], bus->route_[i - 2]);
 		}
 		double check_last_stop =
 				GetDistance(bus->route_[bus->route_.size() - 1],
-							bus->route_[bus->route_.size() - 1]).value;
+							bus->route_[bus->route_.size() - 1]);
 		if (check_last_stop > 0) {
 			length += check_last_stop;
 		}
 	}
 	return length;
 }
+
+
 
 double TransportCatalogue::GetGeoRouteLength (const domain::Bus* bus) const {
 	double length = 0;
@@ -162,7 +188,7 @@ double TransportCatalogue::GetGeoRouteLength (const domain::Bus* bus) const {
 				   bus->route_[i]->coordinates));
 	}
 	if (bus->route_type == domain::RouteType::Line) {
-		length *= 2;
+		length *= 2.;
 	}
 	return length;
 }
