@@ -10,21 +10,28 @@ namespace json_reader {
 JsonReader::JsonReader(data_base::TransportCatalogue &db,
                        router::TransportRouter& tr, serialization::Serialization &sr)
     : db_(std::make_unique<data_base::TransportCatalogue>(db))
-//    : db_(db)
     , tr_(std::move(std::make_unique<router::TransportRouter>(tr)))
     , sr_(std::make_shared<serialization::Serialization>(sr)) {
 }
 
+void json_reader::JsonReader::SerializeToFileProtoDB() {
+    sr_->SerializeToFile();
+}
+
 void JsonReader::LoadJsonAndSetDB(std::istream& input) {
-	LoadJSON(input);
+    LoadJSON(input);
 	SetDB();
     SplitAndSetRoutingSettingsByType();
-    sr_->SerializeToFile();
+    SerializeToFileProtoDB();
+}
+
+void json_reader::JsonReader::DeserializeAndSetDB() {
+    sr_->DeserializeAndSetDB(db_);
 }
 
 void JsonReader::LoadRequestJSON(std::istream &input) {
     LoadJSON(input);
-    sr_->DeserializeDB(db_);
+    DeserializeAndSetDB();
     DeserializeRoutingSettingsAndSet();
 }
 
@@ -36,18 +43,24 @@ void JsonReader::LoadJSON(std::istream& input) {
     }
 }
 
+void json_reader::JsonReader::WriteDistanceToProtoDB() {
+    sr_->WriteDistancesToProtoDB(db_);
+}
+
+void json_reader::JsonReader::WriteRenderSettingsToProtoDB() {
+    sr_->WriteRenderSettingsToProtoDB(GetRenderSettings());
+}
+
 void JsonReader::SetDB() {
 	AddStopsInfoToDB();
 	SetDistancesInDB();
 	AddBusesInfoToDB();
-    sr_->SetDistances(db_);
-    sr_->SerializeRenderSettings(GetRenderSettings());
+    WriteDistanceToProtoDB();
+    WriteRenderSettingsToProtoDB();
 }
 
 void JsonReader::GetCompleteOutputJSON(std::ostream& out) {
-//	LOG_DURATION("GetCompleteOutputJSON");
     graph::DirectedWeightedGraph<double> graph(db_->GetStopCounts());
-//    graph::DirectedWeightedGraph<double> graph(db_.GetStopCounts());
     tr_->FillGraph(db_, graph);
     graph::Router router(graph);
 
@@ -55,7 +68,6 @@ void JsonReader::GetCompleteOutputJSON(std::ostream& out) {
 	for (auto it = stat_requests_->begin(); it != stat_requests_->end(); ++it) {
 		int request_id = it->AsDict().at("id"s).AsInt();
         if (it->AsDict().at("type"s) == "Stop"s) {
-//            if (db_.FindStop(it->AsDict().at("name"s).AsString()) == nullptr) {
             if (db_->FindStop(it->AsDict().at("name"s).AsString()) == nullptr) {
 				output.emplace_back(MakeErrorMessage(request_id));
 				continue;
@@ -69,7 +81,6 @@ void JsonReader::GetCompleteOutputJSON(std::ostream& out) {
             output.emplace_back(MakeRouteInfoNode(router, it, request_id));
         }
         else if (it->AsDict().at("type"s) == "Bus"s) {
-//            if (db_.FindBus(it->AsDict().at("name"s).AsString()) == nullptr) {
             if (db_->FindBus(it->AsDict().at("name"s).AsString()) == nullptr) {
 				output.emplace_back(MakeErrorMessage(request_id));
 				continue;
@@ -83,7 +94,7 @@ void JsonReader::GetCompleteOutputJSON(std::ostream& out) {
 
 void JsonReader::MakeSVG(std::ostream& out) const {
     renderer::MapRenderer map_renderer(std::move(GetSortedAllBusesFromDB()));
-    sr_->DeserializeRenderSettings(map_renderer);
+    sr_->DeserializeRenderSettingsAndSetToMapRenderer(map_renderer);
 	map_renderer.SetRenderer();
 	map_renderer.OutputRenderedMap(out);
 }
@@ -102,7 +113,7 @@ void JsonReader::SplitRequestByType() {
         routing_settings_ = &all_requests_.at("routing_settings"s).AsDict();
     }
     if (all_requests_.find("serialization_settings"s) != all_requests_.end()) {
-        sr_->SetPathToDB(all_requests_.at("serialization_settings"s).AsDict().at("file"s).AsString());
+        sr_->SetPathToProtoDB(all_requests_.at("serialization_settings"s).AsDict().at("file"s).AsString());
     }
 }
 
@@ -122,11 +133,8 @@ void JsonReader::SplitBaseRequestsByType() {
 void JsonReader::SplitAndSetRoutingSettingsByType() {
 	for (const auto& [key, val] : *routing_settings_) {
 		if (key == "bus_velocity"s) {
-//            double velocity = val.AsDouble();
-//			tr_->SetVelocity(velocity);
             sr_->SerializeVelocity(val.AsDouble());
 		} else if (key == "bus_wait_time"s) {
-//			tr_->SetWaitTime(val.AsDouble());
             sr_->SerializeWaitTime(val.AsDouble());
         }
     }
@@ -139,14 +147,13 @@ void JsonReader::DeserializeRoutingSettingsAndSet() {
 void JsonReader::SetDistancesInDB() {
     for (const auto& stop_from : stops_to_db_) {
         for (const auto& [stop_to, dist] : stop_from->at("road_distances"s).AsDict()) {
-//            db_.SetDistances(stop_from->at("name"s).AsString(), stop_to, dist.AsDouble());
             db_->SetDistances(stop_from->at("name"s).AsString(), stop_to, dist.AsDouble());
         }
     }
 }
 
 void JsonReader::SerializeRenderSettings(const renderer::RenderSettings &rs) {
-    sr_->SerializeRenderSettings(rs);
+    sr_->WriteRenderSettingsToProtoDB(rs);
 }
 
 void JsonReader::AddStopsInfoToDB() {
@@ -155,10 +162,8 @@ void JsonReader::AddStopsInfoToDB() {
 		stop_from.stop_name = stop->at("name"s).AsString();
 		stop_from.coordinates.lat = stop->at("latitude"s).AsDouble();
         stop_from.coordinates.lng = stop->at("longitude"s).AsDouble();
-//        stop_from.id = db_.GetStopCounts();
         stop_from.id = db_->GetStopCounts();
-        sr_->SerializeStop(stop_from);
-//        db_.AddStop(std::move(stop_from));
+        sr_->WriteStopToProtoDB(stop_from);
         db_->AddStop(std::move(stop_from));
 	}
 }
@@ -170,14 +175,11 @@ void JsonReader::AddBusesInfoToDB() {
 		bus_output.route_type = bus->at("is_roundtrip"s).AsBool() ?
 					domain::RouteType::Ring : domain::RouteType::Line;
         for (const auto& stop_name : bus->at("stops"s).AsArray()) {
-//            bus_output.route_.push_back(db_.FindStop(stop_name.AsString()));
             bus_output.route_.push_back(db_->FindStop(stop_name.AsString()));
         }
-        sr_->SerializeBus(bus_output);
-//        db_.AddBus(std::move(bus_output));
+        sr_->WriteBusToProtoDB(bus_output);
         db_->AddBus(std::move(bus_output));
     }
-//    db_.SetBusesInfo();
     db_->SetBusesInfo();
 }
 
@@ -193,7 +195,6 @@ json::Node JsonReader::MakeSVGNode(int request_id) {
 }
 
 json::Node JsonReader::MakeStopInfoNode(json::Array::const_iterator it, int request_id) {
-//    domain::StopInfo stop_info = db_.GetStopInfo(it->AsDict().at("name"s).AsString());
     domain::StopInfo stop_info = db_->GetStopInfo(it->AsDict().at("name"s).AsString());
 	std::vector<json::Node> buses;
 	for (auto it = stop_info.buses_to_stop.begin(); it != stop_info.buses_to_stop.end(); ++it) {
@@ -208,7 +209,6 @@ json::Node JsonReader::MakeStopInfoNode(json::Array::const_iterator it, int requ
 }
 
 json::Node JsonReader::MakeBusInfoNode(json::Array::const_iterator it, int request_id) {
-//    domain::BusInfo bus_info = db_.GetBusInfo(it->AsDict().at("name"s).AsString());
     domain::BusInfo bus_info = db_->GetBusInfo(it->AsDict().at("name"s).AsString());
 	return json::Builder{}
 			.StartDict()
@@ -225,11 +225,9 @@ json::Node JsonReader::MakeRouteInfoNode(const graph::Router<double>& router,
 										 json::Array::const_iterator it,
 										 int request_id) {
 	json::Array output;
-
-//    const domain::Stop* stop_from = db_.FindStop(it->AsDict().at("from"s).AsString());
-//    const domain::Stop* stop_to = db_.FindStop(it->AsDict().at("to"s).AsString());
     const domain::Stop* stop_from = db_->FindStop(it->AsDict().at("from"s).AsString());
     const domain::Stop* stop_to = db_->FindStop(it->AsDict().at("to"s).AsString());
+
 	if (stop_from == stop_to) {
 		return MakeEmptyRouteInfoMessage(request_id);
 	} else {
@@ -240,7 +238,6 @@ json::Node JsonReader::MakeRouteInfoNode(const graph::Router<double>& router,
 
 			for (const auto& item : route.value().edges) {
                 const auto& edge = router.GetGraph().GetEdge(item);
-//                domain::Stop* stop = db_.FindStopById(edge.from);
                 domain::Stop* stop = db_->FindStopById(edge.from);
 				output.emplace_back(std::move(MakeWaitNode(wait_time, stop->stop_name)));
 				output.emplace_back(std::move(
@@ -332,8 +329,9 @@ svg::Color MakeRGBaString(json::Node color) {
 }
 
 renderer::RenderSettings JsonReader::GetRenderSettings () const {
-	renderer::RenderSettings rs {};
-    std::cerr << render_settings_->size() << std::endl;
+
+    renderer::RenderSettings rs {};
+
 	for (auto it = render_settings_->begin(); it != render_settings_->end(); ++it) {
 		if (it->first == "bus_label_font_size"s) {
 			rs.bus_label_font_size = it->second.AsDouble();
@@ -378,7 +376,7 @@ renderer::RenderSettings JsonReader::GetRenderSettings () const {
 			}
 			continue;
         } else if (it->first == "underlayer_width"s) {
-            rs.underlayer_width_new = it->second.AsDouble();
+            rs.underlayer_width = it->second.AsDouble();
 			continue;
 		} else if (it->first == "width"s) {
 			rs.width = it->second.AsDouble();
@@ -389,7 +387,6 @@ renderer::RenderSettings JsonReader::GetRenderSettings () const {
 }
 
 std::deque<domain::Bus> JsonReader::GetSortedAllBusesFromDB() const {
-//    std::deque<domain::Bus> all_buses = std::move(db_.GetAllBuses());
     std::deque<domain::Bus> all_buses = std::move(db_->GetAllBuses());
 	std::sort(std::move(all_buses.begin()), std::move(all_buses.end()),
 			  [] (const domain::Bus& lhs, const domain::Bus& rhs) {

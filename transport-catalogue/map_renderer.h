@@ -28,7 +28,7 @@ struct RenderSettings {
 	double stop_label_font_size = 0;
 	svg::Point stop_label_offset {.0, .0};
     svg::Color underlayer_color {};
-    double underlayer_width_new = .0;
+    double underlayer_width = .0;
 	std::vector<svg::Color> color_palette {};
 	svg::Color RenderColor (int route_index) const;
 };

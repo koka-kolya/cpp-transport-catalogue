@@ -85,4 +85,4 @@ private:
 	double GetGeoRouteLength (const domain::Bus* bus) const;
 	void MakeBusInfo(const domain::Bus* bus);
 };
-} // data_base namespace
+}  // namespace data_base

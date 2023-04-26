@@ -72,15 +72,6 @@ domain::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) con
 	return output;
 }
 
-//void data_base::TransportCatalogue::SetDistances (domain::Distance &distance) {
-//	if (distances_.count({distance.from_to.second, distance.from_to.first}) != 0) {
-//		if (distances_.at({distance.from_to.second, distance.from_to.first}) == distance.value) {
-//			return;
-//		}
-//	}
-//	distances_.insert({distance.from_to, distance.value});
-//}
-
 void data_base::TransportCatalogue::SetDistances (std::string_view from, std::string_view to, double dist) {
 	domain::Stop* stop_from = FindStop(from);
 	domain::Stop* stop_to = FindStop(to);

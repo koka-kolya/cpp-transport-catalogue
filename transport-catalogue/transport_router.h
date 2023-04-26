@@ -11,9 +11,7 @@ public:
 	void SetWaitTime(const double bus_wait_time);
 	void SetVelocity(const double bus_velocity);
 
-    void FillGraph(
-        std::unique_ptr<data_base::TransportCatalogue>& tc,
-//        data_base::TransportCatalogue &tc,
+    void FillGraph(std::unique_ptr<data_base::TransportCatalogue>& tc,
                    graph::DirectedWeightedGraph<double>& graph);
 
 	double GetBusWaitTime();
@@ -34,16 +32,12 @@ private:
 						   size_t span_count,
 						   std::string_view bus_num);
 
-    void FillGraphForForwardDirect(
-std::unique_ptr<data_base::TransportCatalogue>& tc,
-//        data_base::TransportCatalogue& tc,
+    void FillGraphForForwardDirect(std::unique_ptr<data_base::TransportCatalogue>& tc,
 								   graph::DirectedWeightedGraph<double> &graph,
 								   const std::vector<domain::Stop*>& stops,
 								   std::string_view bus_name);
 
-    void FillGraphForReverseDirect(
-std::unique_ptr<data_base::TransportCatalogue>& tc,
-//        data_base::TransportCatalogue& tc,
+    void FillGraphForReverseDirect(std::unique_ptr<data_base::TransportCatalogue>& tc,
 								   graph::DirectedWeightedGraph<double> &graph,
 								   const std::vector<domain::Stop*>& stops,
 								   std::string_view bus_name);

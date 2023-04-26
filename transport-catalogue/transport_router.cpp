@@ -28,9 +28,7 @@ void TransportRouter::FillGraphForPair (graph::DirectedWeightedGraph<double>& gr
 	graph.AddEdge(std::move(edge));
 }
 
-void TransportRouter::FillGraphForForwardDirect(
-    std::unique_ptr<data_base::TransportCatalogue>& tc,
-//    data_base::TransportCatalogue& tc,
+void TransportRouter::FillGraphForForwardDirect(std::unique_ptr<data_base::TransportCatalogue>& tc,
 												graph::DirectedWeightedGraph<double>& graph,
 												const std::vector<domain::Stop*>& stops,
 												std::string_view bus_name) {
@@ -39,7 +37,6 @@ void TransportRouter::FillGraphForForwardDirect(
 		size_t span_count = 1;
 		for (size_t j = i + 1; j < stops.size(); ++j) {
             if (stops[i] != stops[j]) {
-//                weight += GetDistanceWeightValue(tc.GetDistanceForPairStops(stops[j - 1], stops [j]));
                 weight += GetDistanceWeightValue(tc->GetDistanceForPairStops(stops[j - 1], stops [j]));
 				FillGraphForPair(graph, weight, stops[i]->id, stops[j]->id, span_count, bus_name);
 				++span_count;
@@ -48,9 +45,7 @@ void TransportRouter::FillGraphForForwardDirect(
 	}
 }
 
-void TransportRouter::FillGraphForReverseDirect(
-    std::unique_ptr<data_base::TransportCatalogue> &tc,
-//    data_base::TransportCatalogue& tc,
+void TransportRouter::FillGraphForReverseDirect(std::unique_ptr<data_base::TransportCatalogue> &tc,
                                                 graph::DirectedWeightedGraph<double> &graph,
                                                 const std::vector<domain::Stop*>& stops,
                                                 std::string_view bus_name) {
@@ -60,7 +55,6 @@ void TransportRouter::FillGraphForReverseDirect(
 		for (size_t j = i; j > 0; --j) {
             if (stops[i] != stops[j - 1]) {
                 weight += GetDistanceWeightValue(tc->GetDistanceForPairStops(stops[j], stops [j - 1]));
-//                weight += GetDistanceWeightValue(tc.GetDistanceForPairStops(stops[j], stops [j - 1]));
 				FillGraphForPair(graph, weight, stops[i]->id, stops[j - 1]->id, span_count, bus_name);
 				++span_count;
 			}
@@ -68,13 +62,10 @@ void TransportRouter::FillGraphForReverseDirect(
 	}
 }
 
-void TransportRouter::FillGraph(
-    std::unique_ptr<data_base::TransportCatalogue>& tc,
-//                                data_base::TransportCatalogue& tc,
+void TransportRouter::FillGraph(std::unique_ptr<data_base::TransportCatalogue>& tc,
                                 graph::DirectedWeightedGraph<double>& graph) {
 	// fill a graph for each pair stops from bus route
     // one stop - one pair of vertexes: (from, to)
-//    for (const auto& bus : tc.GetAllBuses()) {
     for (const auto& bus : tc->GetAllBuses()) {
 		const std::vector<domain::Stop*>& route_stops = bus.route_;
 		FillGraphForForwardDirect(tc, graph, route_stops, bus.bus_name);

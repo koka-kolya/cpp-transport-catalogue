@@ -27,7 +27,7 @@ public:
 
 	void LoadJsonAndSetDB(std::istream& input);
     void LoadRequestJSON(std::istream& input);
-	void LoadJSON(std::istream& input);
+    void LoadJSON(std::istream& input);
 	void SetDB();
 
 	void GetCompleteOutputJSON(std::ostream& out);
@@ -74,5 +74,9 @@ private:
 	json::Node MakeOutputRouteInfoNode(const int request_id, const json::Array& arr, const double weight);
 	json::Node MakeWaitNode(double wait_time, const std::string& stop_name);
 	json::Node MakeTripNode(double weight, int span_count, const std::string& bus_name);
+    void SerializeToFileProtoDB();
+    void DeserializeAndSetDB();
+    void WriteDistanceToProtoDB();
+    void WriteRenderSettingsToProtoDB();
 };
 } // namespace json_reader
