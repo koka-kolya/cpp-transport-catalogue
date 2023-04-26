@@ -1,6 +1,7 @@
 #pragma once
 #include "json.h"
 #include "map_renderer.h"
+#include "serialization.h"
 #include "transport_catalogue.h"
 #include "transport_router.h"
 #include "router.h"
@@ -14,23 +15,28 @@ class JsonReader {
 	using RequestsArr = const json::Array*;
 	using RequestsDict = const json::Dict*;
 	using Dictionaries = std::vector<const json::Dict*>;
-	using DataBasePtr = std::unique_ptr<data_base::TransportCatalogue>;
+    using DataBasePtr = std::unique_ptr<data_base::TransportCatalogue>;
 	using TransportRouterPtr = std::unique_ptr<router::TransportRouter>;
+    using SerializatorPtr = std::shared_ptr<serialization::Serialization>;
 
 public:
 	JsonReader();
-	JsonReader(data_base::TransportCatalogue& db, router::TransportRouter& tr);
+    JsonReader(data_base::TransportCatalogue &db,
+               router::TransportRouter &tr,
+               serialization::Serialization &sr);
 
 	void LoadJsonAndSetDB(std::istream& input);
+    void LoadRequestJSON(std::istream& input);
 	void LoadJSON(std::istream& input);
 	void SetDB();
 
 	void GetCompleteOutputJSON(std::ostream& out);
 
 private:
-	DataBasePtr db_;
-//	router::TransportRouter* tr_;
+    DataBasePtr db_;
+//    data_base::TransportCatalogue db_;
 	TransportRouterPtr tr_;
+    SerializatorPtr sr_;
 
 	json::Dict all_requests_;
 	json::Array output_json;
@@ -46,10 +52,13 @@ private:
 	void SplitRequestByType();
 	void SplitBaseRequestsByType();
 	void SplitAndSetRoutingSettingsByType();
+    void DeserializeRoutingSettingsAndSet();
 
 	void AddStopsInfoToDB();
 	void AddBusesInfoToDB();
 	void SetDistancesInDB();
+
+    void SerializeRenderSettings(const renderer::RenderSettings& rs);
 
 	renderer::RenderSettings GetRenderSettings() const;
 	std::deque<domain::Bus> GetSortedAllBusesFromDB() const;

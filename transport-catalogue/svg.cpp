@@ -20,6 +20,7 @@ std::ostream& operator<<(std::ostream& out, StrokeLineCap line_cap) {
 	}
 	return out;
 }
+
 std::ostream& operator<<(std::ostream& out, StrokeLineJoin line_join) {
 	switch (line_join) {
 	case StrokeLineJoin::ARCS:

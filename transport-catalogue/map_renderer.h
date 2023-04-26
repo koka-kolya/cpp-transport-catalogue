@@ -27,8 +27,8 @@ struct RenderSettings {
 	svg::Point bus_label_offset {.0, .0};
 	double stop_label_font_size = 0;
 	svg::Point stop_label_offset {.0, .0};
-	svg::Color underlayer_color {};
-	double uderlayer_width = .0;
+    svg::Color underlayer_color {};
+    double underlayer_width_new = .0;
 	std::vector<svg::Color> color_palette {};
 	svg::Color RenderColor (int route_index) const;
 };
@@ -125,9 +125,10 @@ class MapRenderer {
 	using DrawablePtrs = std::vector<std::unique_ptr<svg::Drawable>>;
 public:
 	MapRenderer();
-	MapRenderer(std::deque<domain::Bus> all_buses, RenderSettings rs);
+    MapRenderer(std::deque<domain::Bus> all_buses);
 
 	void SetRenderer();
+    void SetRenderSettings(const RenderSettings& rs);
 	void OutputRenderedMap (std::ostream& out);
 	svg::Document GetRenderedMap () const;
 
@@ -215,4 +216,4 @@ void MapRenderer::DrawPicture(const Container& container, svg::ObjectContainer& 
 	DrawPicture(begin(container), end(container), target);
 }
 
-}
+}  // namespace renderer

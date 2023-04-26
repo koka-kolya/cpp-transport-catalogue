@@ -28,7 +28,7 @@ public:
 private:
 	std::hash<const void*> hash_pointer_;
 };
-} // end data_base::detail namespace
+} // namespace detail
 
 class TransportCatalogue {
 	struct StopCount {
@@ -55,7 +55,6 @@ public:
 	domain::BusInfo GetBusInfo(std::string_view bus_name) const;
 	domain::StopInfo GetStopInfo(std::string_view stop_name) const;
 
-	void SetDistances (domain::Distance& distance);
 	void SetDistances (std::string_view from, std::string_view to, double dist);
 	void SetBusesInfo();
 

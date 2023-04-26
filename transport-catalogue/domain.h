@@ -39,8 +39,8 @@ struct StopInfo {
 	bool no_bus;
 };
 
-struct Distance {
-	std::pair<const domain::Stop*, const domain::Stop*> from_to;
-	size_t value = 0;
-};
-}
+//struct Distance {
+//    std::pair<const domain::Stop*, const domain::Stop*> from_to;
+//    size_t value = 0;
+//};
+} //namespace domain

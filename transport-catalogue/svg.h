@@ -44,7 +44,7 @@ struct Point {
  * Хранит ссылку на поток вывода, текущее значение и шаг отступа при выводе элемента
  */
 struct RenderContext {
-	RenderContext(std::ostream& out)
+    RenderContext(std::ostream& out)
 		: out(out) {
 	}
 

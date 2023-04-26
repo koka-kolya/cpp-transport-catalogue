@@ -1,4 +1,6 @@
 #include "transport_catalogue.h"
+#include <iostream>
+#include <ostream>
 
 namespace data_base {
 
@@ -70,14 +72,14 @@ domain::StopInfo TransportCatalogue::GetStopInfo(std::string_view stop_name) con
 	return output;
 }
 
-void data_base::TransportCatalogue::SetDistances (domain::Distance &distance) {
-	if (distances_.count({distance.from_to.second, distance.from_to.first}) != 0) {
-		if (distances_.at({distance.from_to.second, distance.from_to.first}) == distance.value) {
-			return;
-		}
-	}
-	distances_.insert({distance.from_to, distance.value});
-}
+//void data_base::TransportCatalogue::SetDistances (domain::Distance &distance) {
+//	if (distances_.count({distance.from_to.second, distance.from_to.first}) != 0) {
+//		if (distances_.at({distance.from_to.second, distance.from_to.first}) == distance.value) {
+//			return;
+//		}
+//	}
+//	distances_.insert({distance.from_to, distance.value});
+//}
 
 void data_base::TransportCatalogue::SetDistances (std::string_view from, std::string_view to, double dist) {
 	domain::Stop* stop_from = FindStop(from);
@@ -142,8 +144,8 @@ size_t TransportCatalogue::GetDistanceFromTo(const domain::Stop* from,
 											 const domain::Stop* to) const {
 	if (distances_.count({from, to}) > 0) {
 		return distances_.at({from, to});
-	}
-	return 0u;
+    }
+    return {};
 }
 
 TransportCatalogue::StopCount
@@ -159,8 +161,8 @@ TransportCatalogue::GetStopCount (const domain::Bus* bus) const{
 }
 
 double TransportCatalogue::GetRealRouteLength (const domain::Bus* bus) const {
-	double length = 0;
-	for (long unsigned int i = 1; i < bus->route_.size(); ++i) {
+    double length = 0;
+    for (size_t i = 1; i < bus->route_.size(); ++i) {
 		length += GetDistance(bus->route_[i - 1], bus->route_[i]);
 	}
 	if (bus->route_type == domain::RouteType::Ring) {
@@ -178,8 +180,6 @@ double TransportCatalogue::GetRealRouteLength (const domain::Bus* bus) const {
 	}
 	return length;
 }
-
-
 
 double TransportCatalogue::GetGeoRouteLength (const domain::Bus* bus) const {
 	double length = 0;
@@ -209,4 +209,4 @@ void TransportCatalogue::MakeBusInfo(const domain::Bus* bus) {
 	}
 	buses_info_.insert({bus->bus_name, std::move(bus_info)});
 }
-}
+} // namespace data_base

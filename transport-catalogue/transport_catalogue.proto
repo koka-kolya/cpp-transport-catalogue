@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package db_proto;
+
+import "map_renderer.proto";
+import "transport_router.proto";
+
+message Coordinates {
+	double lat = 1;
+	double lng = 2;
+}
+
+message Stop {
+	uint64 id = 1;
+	string stop_name = 2;
+	Coordinates coordinates = 3;
+}
+
+message Distance {
+	string from = 1;
+	string to = 2;
+	double length = 3;
+}
+
+enum RouteType {
+	Ring = 0;
+	Line = 1;
+}
+
+message Bus {
+	string bus_name = 1;
+	repeated string route = 2;
+	RouteType route_type = 3;
+}
+
+message DataBaseTC {
+	repeated Stop stop = 1;
+	repeated Distance distances = 2;
+	repeated Bus bus = 3;
+}
+
+message TC {
+	DataBaseTC db = 1;
+	RenderSettings rs = 2;
+	RouteSettings route_settings = 3;
+}

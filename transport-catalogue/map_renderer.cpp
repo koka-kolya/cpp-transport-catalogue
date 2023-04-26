@@ -13,16 +13,19 @@ svg::Color RenderSettings::RenderColor (int route_index) const {
 	return color_palette[route_index % color_palette.size()];
 }
 
-MapRenderer::MapRenderer(std::deque<domain::Bus> all_buses, RenderSettings rs)
-	: all_buses_(std::move(all_buses))
-	, rs_(std::move(rs)) {
+MapRenderer::MapRenderer(std::deque<domain::Bus> all_buses)
+	: all_buses_(std::move(all_buses)) {
 }
 
 void MapRenderer::SetRenderer() {
 	MakeRouteToGeoCoordsAndStop();
 	MakeAllGeoCoordsArr();
-	MakeRoutesWithPlainCoords();
-	RenderMap();
+    MakeRoutesWithPlainCoords();
+    RenderMap();
+}
+
+void MapRenderer::SetRenderSettings(const RenderSettings &rs) {
+    rs_ = rs;
 }
 
 void MapRenderer::OutputRenderedMap (std::ostream& out) {
@@ -94,8 +97,8 @@ svg::Text MapRenderer::GetExtraForName(const svg::Text& name) const {
 			.SetStrokeColor(rs_.underlayer_color)
 			.SetFillColor(rs_.underlayer_color)
 			.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND)
-			.SetStrokeLineCap(svg::StrokeLineCap::ROUND)
-			.SetStrokeWidth(rs_.uderlayer_width);
+            .SetStrokeLineCap(svg::StrokeLineCap::ROUND)
+            .SetStrokeWidth(rs_.underlayer_width_new);
 	return extra_name;
 }
 
@@ -123,6 +126,7 @@ MapRenderer::DrawablePtrs MapRenderer::MakeStopsCircles() const {
 svg::Document MapRenderer::RenderMap() const {
 
 	svg::Document map;
+
 	DrawPicture(std::move(MakeRoutesSVG()), map); // draw routes
 
 	for (long unsigned int index_route = 0; index_route < routes_svg_.size(); ++index_route) {
